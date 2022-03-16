@@ -1,87 +1,52 @@
+import pandas as pd
+import pptx
 from pptx import Presentation
-import copy
+import datetime
+
+from src.utils import change_pic, trata_base, clear_text, change_text
 
 
-def change_pic(slide, old_picture, pic_file) -> None:
-    """" Changes a picture in a specific slide
-    :param Slide slide: The Slide object that contains the picture
-    :param Shape old_picture: The Shape object of old picture
-    :param str pic_file: The path to the new picture file
-    """
-    # Save the position and shape of old picture
-    x, y, cx, cy = old_picture.left, old_picture.top, old_picture.width, old_picture.height
+def run():
+    df = pd.read_excel(r"PAHT_TO_FILE.XLSX")
 
-    # Add the new picture using old's picture shape and size
-    slide.add_picture(pic_file, x, y, cx, cy)
+    df = trata_base(df)
 
-    # Remove the old picture
-    old_picture._element.getparent().remove(old_picture._element)
-    return None
+    prs = Presentation(r"template.pptx")
 
-
-def clear_text(shape):
-    """" Clear all texts from a shape """
-    if shape.has_text_frame:
-        for p in shape.text_frame.paragraphs:
-            for run in p.runs:
-                run.text = ""
-    return shape
-
-
-def change_text(shape, new_text):
-    """" Insert text in a shape """
-    if shape.has_text_frame:
-        shape.text_frame.paragraphs[0].runs[0].text = new_text
-    return shape
-
-
-def duplicate_slide(pres, index):
-    """ToDO"""
-    source = pres.slides[index]
-    try:
-        blank_slide_layout = pres.slide_layouts[6]
-    except:
-        blank_slide_layout = pres.slide_layouts[len(pres.slide_layouts) - 1]
-    dest = pres.slides.add_slide(blank_slide_layout)
-
-    for shp in source.shapes:
-        el = shp.element
-        newel = copy.deepcopy(el)
-        dest.shapes._spTree.insert_element_before(newel, 'p:extLst')
-
-    return dest
-
-
-def start():
-    # Carrega a apresentação
-    prs = Presentation('input.pptx')
-
-    # Objeto slides
     slides = prs.slides
 
-    # Objeto shapes
-    shapes = slides[0].shapes
+    referencia = "Entrega"
+    # Rename Slides
+    for slide in slides:
+        for shape in slide.shapes:
+            if shape.name == referencia:
+                slide.name = shape.text
 
-    # Any shape that contains texts may contain one or more paragraphs.
-    # Each paragraphs may contains one or more RUNS.
-    # If the paragraph have different formatting, each part will be an different RUN.
-    # For example if the paragraphs have a bold word like "This is <b> an </b> example",
-    # this paragraph will have three runs [This is, <b> an </n>, example].
+    sl = 0
+    for slide in slides:
+        frame = 0
+        for shape in slide.shapes:
+            # Se não o shape não for picture, troca o texto
+            if not type(shape) == pptx.shapes.picture.Picture:
+                if shape.name in df.columns:
+                    clear_text(shape)
+                    if str(df.loc[df[referencia] == slide.name][shape.name].iloc[0]) == "nan":
+                        change_text(shape, "")
+                    else:
+                        change_text(shape, str(df.loc[df[referencia] == slide.name][shape.name].iloc[0]).replace(';', "").strip())
+                    frame += 1
 
-    # So here we opt to clear all texts in all paragraphs and runs, and put the new text in only one paragraphs and run
+            if type(shape) == pptx.shapes.picture.Picture:
+                if shape.name in df.columns:
+                    change_pic(slide.shapes, shape, df.loc[df[referencia] == slide.name][shape.name].iloc[0])
 
-    for shape in shapes:
-        # Clear all paragraphs from a shape
-        clear_text(shape)
-        # Put a new text
-        change_text(shape, 'NEW TEXT TO REPLACE')
+            if shape.name == "HomeButton":
+                shape.click_action.target_slide = slides[df.loc[df[referencia] == slide.name]['hyperlink'].iloc[0]]
+        sl += 1
 
-    # Function to change picture. Arguments: Shapes of slide, The Shape that will be replaced, Path to new picture file
-    change_pic(shapes, shapes[-1], 'FIGURE_FILE.png')
-
-    # export pptx
-    prs.save('OUTPUT.pptx')
+    hoje = datetime.date.today().strftime("%d-%m-%Y")
+    prs.save(f'Estrategia Uan {hoje}.pptx')
 
 
 if __name__ == '__main__':
-    start()
+    run()
