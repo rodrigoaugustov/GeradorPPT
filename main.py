@@ -1,17 +1,17 @@
-import pandas as pd
+import os
+
 import pptx
 from pptx import Presentation
 import datetime
 
-from src.utils import change_pic, trata_base, clear_text, change_text
+from src.data import load_data
+from src.utils import change_pic, clear_text, change_text
 
 
-def run():
-    df = pd.read_excel(r"PAHT_TO_FILE.XLSX")
-
-    df = trata_base(df)
-
-    prs = Presentation(r"template.pptx")
+def run(ppt, data):
+    df = load_data(data)
+    print(df)
+    prs = Presentation(ppt)
 
     slides = prs.slides
 
@@ -33,7 +33,8 @@ def run():
                     if str(df.loc[df[referencia] == slide.name][shape.name].iloc[0]) == "nan":
                         change_text(shape, "")
                     else:
-                        change_text(shape, str(df.loc[df[referencia] == slide.name][shape.name].iloc[0]).replace(';', "").strip())
+                        change_text(shape, str(df.loc[df[referencia] == slide.name][shape.name].iloc[0]).replace(';',
+                                                                                                                 "").strip())
                     frame += 1
 
             if type(shape) == pptx.shapes.picture.Picture:
@@ -45,8 +46,7 @@ def run():
         sl += 1
 
     hoje = datetime.date.today().strftime("%d-%m-%Y")
-    prs.save(f'Estrategia Uan {hoje}.pptx')
 
-
-if __name__ == '__main__':
-    run()
+    filename = f'Generated-{hoje}.pptx'
+    prs.save(filename)
+    os.system(filename)
