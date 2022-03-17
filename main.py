@@ -9,8 +9,8 @@ from src.utils import change_pic, clear_text, change_text
 
 
 def run(ppt, data):
+    print('inicio')
     df = load_data(data)
-    print(df)
     prs = Presentation(ppt)
 
     slides = prs.slides
@@ -50,3 +50,16 @@ def run(ppt, data):
     filename = f'Generated-{hoje}.pptx'
     prs.save(filename)
     os.system(filename)
+
+
+if __name__ == "__main__":
+    import sys
+    from PyQt5 import QtWidgets
+    from ui.tela import Ui_Dialog
+
+    app = QtWidgets.QApplication(sys.argv)
+    Dialog = QtWidgets.QDialog()
+    ui = Ui_Dialog()
+    ui.setupUi(Dialog)
+    Dialog.show()
+    sys.exit(app.exec_())
